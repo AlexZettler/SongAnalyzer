@@ -30,6 +30,7 @@ basicpitch = [
 ]
 # TensorFlow has no stable wheels for Python 3.14+ yet; keep install working on newer Pythons.
 train = [
+    "importlib-resources>=6.0",
     "tensorflow>=2.14; python_version < \"3.14\"",
     "tensorflow-datasets>=4.9; python_version < \"3.14\"",
     "optuna>=3.6",

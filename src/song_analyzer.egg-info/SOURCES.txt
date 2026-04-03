@@ -20,7 +20,10 @@ src/song_analyzer/instruments/constants.py
 src/song_analyzer/instruments/infer.py
 src/song_analyzer/instruments/mel.py
 src/song_analyzer/instruments/model.py
+src/song_analyzer/instruments/nsynth_train_loop.py
+src/song_analyzer/instruments/nsynth_tune_fingerprint.py
 src/song_analyzer/instruments/train_nsynth.py
+src/song_analyzer/instruments/tune_nsynth.py
 src/song_analyzer/pitch/__init__.py
 src/song_analyzer/pitch/iterative_extract.py
 src/song_analyzer/pitch/transcribe.py
@@ -35,6 +38,7 @@ tests/test_chords.py
 tests/test_global_structure.py
 tests/test_iterative_extract.py
 tests/test_note_removal.py
+tests/test_nsynth_tune_fingerprint.py
 tests/test_pipeline_mock.py
 tests/test_schema.py
 tests/test_solo_detect.py

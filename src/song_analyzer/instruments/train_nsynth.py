@@ -29,6 +29,15 @@ def _import_tfds():
             'Training requires TensorFlow. Install with: pip install -e ".[train]" '
             "(needs a Python version TensorFlow publishes wheels for; this project targets 3.13)."
         ) from e
+    try:
+        import importlib_resources  # noqa: F401 — tfds.load() imports this lazily
+    except ModuleNotFoundError as e:
+        raise ModuleNotFoundError(
+            "tensorflow-datasets requires the PyPI package 'importlib-resources' "
+            "(Python import name: importlib_resources). "
+            "Install with: pip install 'importlib-resources>=6' "
+            'or reinstall the project: pip install -e ".[train]"'
+        ) from e
     return tf, tfds
 
 

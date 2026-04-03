@@ -4,6 +4,7 @@ Version: 0.1.0
 Summary: Full-mix song analysis for tabbing: separation, NSynth-style instrument ID, pitch, chords, note removal
 Requires-Python: >=3.13
 Description-Content-Type: text/markdown
+Requires-Dist: importlib-resources>=6.0
 Requires-Dist: numpy>=1.24
 Requires-Dist: scipy>=1.11
 Requires-Dist: soundfile>=0.12
@@ -18,9 +19,10 @@ Provides-Extra: basicpitch
 Requires-Dist: basic-pitch>=0.3; extra == "basicpitch"
 Requires-Dist: tensorflow<2.15.1,>=2.14; python_version < "3.14" and extra == "basicpitch"
 Provides-Extra: train
+Requires-Dist: importlib-resources>=6.0; extra == "train"
 Requires-Dist: tensorflow>=2.14; python_version < "3.14" and extra == "train"
 Requires-Dist: tensorflow-datasets>=4.9; python_version < "3.14" and extra == "train"
-Requires-Dist: importlib-resources>=6.0; extra == "train"
+Requires-Dist: optuna>=3.6; extra == "train"
 Provides-Extra: dev
 Requires-Dist: pytest>=7.4; extra == "dev"
 Requires-Dist: pytest-cov>=4.1; extra == "dev"
