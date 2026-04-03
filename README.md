@@ -1,0 +1,40 @@
+# Song Analyzer
+
+Offline pipeline for full-mix audio: stem separation (Demucs), instrument-family classification (train on NSynth), note transcription (Basic Pitch), chord naming, and approximate per-note removal on stems.
+
+## Install
+
+```bash
+pip install -e ".[dev]"
+```
+
+For **Spotify Basic Pitch** transcription (Python \<3.13 where TensorFlow wheels exist):
+
+```bash
+pip install -e ".[dev,basicpitch]"
+```
+
+Without `basicpitch`, the CLI uses a **librosa piptrack** fallback (weaker on polyphonic stems).
+
+Training the instrument classifier from NSynth (optional extra):
+
+```bash
+pip install -e ".[dev,train]"
+```
+
+## Usage
+
+```bash
+song-analyzer analyze path/to/song.wav --output-dir ./out --device cuda
+song-analyzer remove-note path/to/song.wav --output ./out/mix_minus.wav --stem other --midi-pitch 60 --start 1.0 --end 2.0
+```
+
+Set `SONGANALYZER_NSYNTH_CHECKPOINT` or pass `--nsynth-checkpoint` to a trained `.pt` file for instrument labels; otherwise stems are labeled with a uniform fallback and a warning.
+
+## Train NSynth classifier
+
+```bash
+song-analyzer train-nsynth --out checkpoints/nsynth.pt --epochs 5 --device cuda
+```
+
+Requires `[train]` and TensorFlow Datasets download of `nsynth` on first run.

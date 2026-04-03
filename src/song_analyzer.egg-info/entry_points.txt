@@ -1,0 +1,2 @@
+[console_scripts]
+song-analyzer = song_analyzer.cli:main
