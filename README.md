@@ -4,11 +4,13 @@ Offline pipeline for full-mix audio: stem separation (Demucs), instrument-family
 
 ## Install
 
+Requires **Python 3.13+** (use 3.13 for TensorFlow-based extras until 3.14 wheels ship).
+
 ```bash
 pip install -e ".[dev]"
 ```
 
-For **Spotify Basic Pitch** transcription (Python \<3.13 where TensorFlow wheels exist):
+For **Spotify Basic Pitch** transcription (TensorFlow; use Python 3.13 — wheels not on PyPI for 3.14+ yet):
 
 ```bash
 pip install -e ".[dev,basicpitch]"

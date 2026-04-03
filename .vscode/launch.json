@@ -1,0 +1,179 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "CLI: train-nsynth (default)",
+      "type": "python",
+      "request": "launch",
+      "module": "song_analyzer.cli",
+      "args": [
+        "train-nsynth",
+        "--out",
+        "checkpoints/nsynth.pt",
+        "--epochs",
+        "5",
+        "--device",
+        "cuda",
+        "--max-steps-per-epoch",
+        "500"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "CLI: train-nsynth (CPU)",
+      "type": "python",
+      "request": "launch",
+      "module": "song_analyzer.cli",
+      "args": [
+        "train-nsynth",
+        "--out",
+        "checkpoints/nsynth.pt",
+        "--epochs",
+        "5",
+        "--device",
+        "cpu",
+        "--max-steps-per-epoch",
+        "500"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "CLI: analyze",
+      "type": "python",
+      "request": "launch",
+      "module": "song_analyzer.cli",
+      "args": [
+        "analyze",
+        "${input:analyzeAudio}",
+        "-o",
+        "${input:analyzeOutputDir}",
+        "--device",
+        "cuda"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "SONGANALYZER_NSYNTH_CHECKPOINT": "${workspaceFolder}/checkpoints/nsynth.pt"
+      }
+    },
+    {
+      "name": "CLI: analyze (staged)",
+      "type": "python",
+      "request": "launch",
+      "module": "song_analyzer.cli",
+      "args": [
+        "analyze",
+        "${input:analyzeAudio}",
+        "-o",
+        "${input:analyzeOutputDir}",
+        "--device",
+        "cuda",
+        "--staged",
+        "--nsynth-checkpoint",
+        "${workspaceFolder}/checkpoints/nsynth.pt"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "SONGANALYZER_NSYNTH_CHECKPOINT": "${workspaceFolder}/checkpoints/nsynth.pt"
+      }
+    },
+    {
+      "name": "CLI: remove-note",
+      "type": "python",
+      "request": "launch",
+      "module": "song_analyzer.cli",
+      "args": [
+        "remove-note",
+        "${input:removeNoteAudio}",
+        "-o",
+        "${input:removeNoteOutput}",
+        "--stem",
+        "${input:removeNoteStem}",
+        "--midi-pitch",
+        "${input:removeNoteMidi}",
+        "--start",
+        "${input:removeNoteStart}",
+        "--end",
+        "${input:removeNoteEnd}",
+        "--device",
+        "cpu"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Python: pytest (all)",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["tests", "-v"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Python: pytest (current file)",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["${file}", "-v"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    }
+  ],
+  "inputs": [
+    {
+      "id": "analyzeAudio",
+      "type": "promptString",
+      "description": "Path to input audio file (e.g. path/to/song.wav)"
+    },
+    {
+      "id": "analyzeOutputDir",
+      "type": "promptString",
+      "description": "Output directory for stems + analysis.json"
+    },
+    {
+      "id": "removeNoteAudio",
+      "type": "promptString",
+      "description": "Path to input mix WAV"
+    },
+    {
+      "id": "removeNoteOutput",
+      "type": "promptString",
+      "description": "Output mixed WAV path"
+    },
+    {
+      "id": "removeNoteStem",
+      "type": "promptString",
+      "description": "Stem name: drums, bass, other, vocals",
+      "default": "other"
+    },
+    {
+      "id": "removeNoteMidi",
+      "type": "promptString",
+      "description": "MIDI note number to attenuate",
+      "default": "60"
+    },
+    {
+      "id": "removeNoteStart",
+      "type": "promptString",
+      "description": "Start time in seconds",
+      "default": "1.0"
+    },
+    {
+      "id": "removeNoteEnd",
+      "type": "promptString",
+      "description": "End time in seconds",
+      "default": "2.0"
+    }
+  ]
+}

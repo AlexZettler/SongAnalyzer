@@ -7,8 +7,9 @@ name = "song-analyzer"
 version = "0.1.0"
 description = "Full-mix song analysis for tabbing: separation, NSynth-style instrument ID, pitch, chords, note removal"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.13"
 dependencies = [
+    "importlib-resources>=6.0",
     "numpy>=1.24",
     "scipy>=1.11",
     "soundfile>=0.12",
@@ -22,18 +23,21 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Basic Pitch needs TensorFlow; TF wheels are not available for Python 3.13+ on all platforms.
+# Basic Pitch needs TensorFlow; no stable PyPI wheels for Python 3.14+ yet (same cutoff as [train]).
 basicpitch = [
     "basic-pitch>=0.3",
-    "tensorflow>=2.14,<2.15.1; python_version < \"3.13\"",
+    "tensorflow>=2.14,<2.15.1; python_version < \"3.14\"",
 ]
+# TensorFlow has no stable wheels for Python 3.14+ yet; keep install working on newer Pythons.
 train = [
-    "tensorflow>=2.14",
-    "tensorflow-datasets>=4.9",
+    "tensorflow>=2.14; python_version < \"3.14\"",
+    "tensorflow-datasets>=4.9; python_version < \"3.14\"",
+    "optuna>=3.6",
 ]
 dev = [
     "pytest>=7.4",
     "pytest-cov>=4.1",
+    "mypy>=1.8",
 ]
 
 [project.scripts]
@@ -45,3 +49,48 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[tool.mypy]
+python_version = "3.13"
+explicit_package_bases = true
+mypy_path = "src"
+files = ["src/song_analyzer", "tests"]
+plugins = ["pydantic.mypy"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+strict_equality = true
+show_error_codes = true
+disable_error_code = ["import-untyped"]
+
+[[tool.mypy.overrides]]
+module = "demucs.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "basic_pitch.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "tensorflow"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "tensorflow.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "tensorflow_datasets"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "tensorflow_datasets.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "optuna"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "optuna.*"
+ignore_missing_imports = true

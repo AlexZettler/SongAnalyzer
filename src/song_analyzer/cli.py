@@ -26,6 +26,24 @@ def analyze_cmd(
     ),
     no_stem_wavs: bool = typer.Option(False, help="Do not write per-stem WAV files"),
     chord_hop: float = typer.Option(0.05, help="Chord analysis hop in seconds"),
+    staged: bool = typer.Option(
+        False,
+        "--staged",
+        help="3-pass pipeline: global structure, solo/timbre, iterative note peeling",
+    ),
+    restrict_iterative_solo: bool = typer.Option(
+        False,
+        "--restrict-iterative-solo",
+        help="Staged only: peel notes only when their midpoint falls in a solo window",
+    ),
+    no_pass_json: bool = typer.Option(
+        False,
+        help="Staged only: do not write pass1.json / pass2.json debug files",
+    ),
+    max_iterative_notes: int = typer.Option(
+        512,
+        help="Staged only: max peel iterations per stem",
+    ),
 ) -> None:
     """Separate a full mix, classify stems, transcribe notes, and estimate chords."""
     warnings.filterwarnings("default", category=UserWarning)
@@ -39,6 +57,10 @@ def analyze_cmd(
         nsynth_checkpoint=nsynth_checkpoint,
         write_stem_wavs=not no_stem_wavs,
         chord_hop_s=chord_hop,
+        use_staged=staged,
+        restrict_iterative_to_solo=restrict_iterative_solo,
+        write_pass_json=not no_pass_json,
+        max_iterative_notes_per_stem=max_iterative_notes,
     )
     typer.echo(f"Wrote {output_dir / 'analysis.json'}")
 
@@ -49,10 +71,50 @@ def train_nsynth_cmd(
     epochs: int = typer.Option(3),
     batch_size: int = typer.Option(32, "--batch-size"),
     lr: float = typer.Option(1e-3, "--lr"),
+    weight_decay: float = typer.Option(0.01, "--weight-decay"),
     device: str = typer.Option("cuda", "--device"),
     max_steps: int = typer.Option(500, "--max-steps-per-epoch"),
+    max_val_steps: Optional[int] = typer.Option(
+        None,
+        "--max-val-steps",
+        help="Cap validation batches on nsynth valid split (each epoch when set); when --tune, defaults to 200 if omitted",
+    ),
+    tune: bool = typer.Option(False, "--tune", help="Run Optuna HPO then train with best hyperparameters"),
+    tune_trials: int = typer.Option(20, "--tune-trials"),
+    tune_cache_dir: Optional[Path] = typer.Option(
+        None,
+        "--tune-cache-dir",
+        help="Directory for SQLite study cache (default: user cache song_analyzer/tune)",
+    ),
+    no_tune_cache: bool = typer.Option(
+        False,
+        "--no-tune-cache",
+        help="In-memory Optuna only (no resume)",
+    ),
+    tune_fresh: bool = typer.Option(
+        False,
+        "--tune-fresh",
+        help="Delete existing study for this fingerprint and start over",
+    ),
 ) -> None:
     """Train instrument-family classifier on NSynth (requires pip install -e '.[train]')."""
+    if tune:
+        from song_analyzer.instruments.tune_nsynth import tune_nsynth_main
+
+        val_cap = max_val_steps if max_val_steps is not None else 200
+        tune_nsynth_main(
+            out=out,
+            device=device,
+            n_trials=tune_trials,
+            tune_cache_dir=tune_cache_dir,
+            no_tune_cache=no_tune_cache,
+            tune_fresh=tune_fresh,
+            max_val_steps=val_cap,
+            final_epochs=epochs,
+            final_max_steps_per_epoch=max_steps,
+        )
+        return
+
     from song_analyzer.instruments.train_nsynth import train_main
 
     argv = [
@@ -64,11 +126,15 @@ def train_nsynth_cmd(
         str(batch_size),
         "--lr",
         str(lr),
+        "--weight-decay",
+        str(weight_decay),
         "--device",
         device,
         "--max-steps-per-epoch",
         str(max_steps),
     ]
+    if max_val_steps is not None:
+        argv.extend(["--max-val-steps", str(max_val_steps)])
     train_main(argv)
 
 

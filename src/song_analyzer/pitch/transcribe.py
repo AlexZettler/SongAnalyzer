@@ -53,8 +53,8 @@ def _transcribe_piptrack_fallback(audio: np.ndarray, sr: int, stem_id: str) -> l
     harmonic = librosa.effects.harmonic(y)
     f0, voiced_flag, _ = librosa.pyin(
         harmonic,
-        fmin=librosa.note_to_hz("C2"),
-        fmax=librosa.note_to_hz("C7"),
+        fmin=float(librosa.note_to_hz("C2")),
+        fmax=float(librosa.note_to_hz("C7")),
         sr=sr,
         frame_length=2048,
         hop_length=512,

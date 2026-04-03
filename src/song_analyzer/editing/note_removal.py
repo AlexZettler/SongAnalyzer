@@ -73,6 +73,76 @@ def attenuate_note_harmonics(
     return y_out.astype(np.float32)
 
 
+def expander_noise_gate_region(
+    audio_mono: np.ndarray,
+    sr: int,
+    region_start_s: float,
+    region_end_s: float,
+    *,
+    pad_s: float = 0.05,
+    frame_ms: float = 10.0,
+    threshold_db_below_peak: float = 22.0,
+    below_gain: float = 0.08,
+    attack_ms: float = 3.0,
+    release_ms: float = 50.0,
+) -> np.ndarray:
+    """
+    Downward expander in ``[region_start_s, region_end_s]`` (expanded by ``pad_s``):
+    frames whose RMS falls far below the local peak gain are scaled toward ``below_gain``.
+    """
+    y = np.asarray(audio_mono, dtype=np.float32)
+    if y.ndim > 1:
+        y = np.mean(y, axis=0)
+    n = len(y)
+    if n == 0:
+        return y
+
+    rs = max(0.0, region_start_s - pad_s)
+    re = min(float(n / sr), region_end_s + pad_s)
+    i0 = int(rs * sr)
+    i1 = int(re * sr)
+    i0 = max(0, min(i0, n - 1))
+    i1 = max(i0 + 1, min(i1, n))
+    region = y[i0:i1].copy()
+    if region.size < 8:
+        return y
+
+    frame = max(8, int(sr * frame_ms / 1000.0))
+    hop = max(1, frame // 4)
+    rms_list: list[float] = []
+    for j in range(0, len(region) - frame + 1, hop):
+        sl = region[j : j + frame]
+        rms_list.append(float(np.sqrt(np.mean(sl**2) + 1e-18)))
+    if not rms_list:
+        return y
+
+    peak = max(rms_list)
+    thresh = peak * (10.0 ** (-threshold_db_below_peak / 20.0))
+    target = np.array([1.0 if r >= thresh else below_gain for r in rms_list], dtype=np.float32)
+
+    att = float(np.exp(-hop / max(1e-6, attack_ms * 1e-3 * sr)))
+    rel = float(np.exp(-hop / max(1e-6, release_ms * 1e-3 * sr)))
+    smoothed = np.zeros_like(target)
+    g = 1.0
+    for k in range(len(target)):
+        tg = float(target[k])
+        if tg < g:
+            g = tg + (g - tg) * att
+        else:
+            g = tg + (g - tg) * rel
+        smoothed[k] = g
+
+    gain_full = np.ones(len(region), dtype=np.float32)
+    for k, gv in enumerate(smoothed):
+        s = k * hop
+        e = min(len(region), s + frame)
+        gain_full[s:e] = np.minimum(gain_full[s:e], gv)
+
+    y_out = y.copy()
+    y_out[i0:i1] = region * gain_full
+    return y_out.astype(np.float32)
+
+
 def remix_stems(
     stems: dict[str, np.ndarray],
     *,

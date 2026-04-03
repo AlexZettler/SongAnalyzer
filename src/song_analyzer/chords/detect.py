@@ -19,7 +19,8 @@ def chord_label_for_pcs(pitch_classes: list[int], bass_pc: int | None = None) ->
     try:
         name = str(c.pitchedCommonName) if c.pitchedCommonName else str(c.commonName)
     except Exception:
-        name = c.figure
+        fig = getattr(c, "figure", None)
+        name = str(fig) if fig is not None else ""
     if not name or name in ("Chord", "None"):
         name = "-".join(p.name for p in pitches)
 

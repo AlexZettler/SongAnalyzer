@@ -1,5 +1,18 @@
 from __future__ import annotations
 
+"""
+Stem separation via Demucs.
+
+The set of stem keys in the returned dict always matches ``model.sources`` for the
+chosen pretrained (do not assume fixed names in application code). Common cases:
+
+- ``htdemucs``: ``drums``, ``bass``, ``other``, ``vocals``
+- ``htdemucs_6s``: above plus ``guitar``, ``piano``
+
+Mono input is duplicated to stereo before ``apply_model``; each stem is reduced to
+mono by averaging channels. Sample rate is ``model.samplerate``.
+"""
+
 from pathlib import Path
 
 import numpy as np

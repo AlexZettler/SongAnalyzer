@@ -6,19 +6,23 @@ torch>=2.0
 torchaudio>=2.0
 demucs>=4.0
 music21>=9.1
-typer[all]>=0.12
+typer>=0.12
 pydantic>=2.0
 
 [basicpitch]
 basic-pitch>=0.3
 
-[basicpitch:python_version < "3.13"]
+[basicpitch:python_version < "3.14"]
 tensorflow<2.15.1,>=2.14
 
 [dev]
 pytest>=7.4
 pytest-cov>=4.1
+mypy>=1.8
 
 [train]
+importlib-resources>=6.0
+
+[train:python_version < "3.14"]
 tensorflow>=2.14
 tensorflow-datasets>=4.9
