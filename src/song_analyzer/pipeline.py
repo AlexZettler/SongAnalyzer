@@ -47,10 +47,20 @@ def analyze_mix(
     max_iterative_notes_per_stem: int = 512,
 ) -> AnalysisResult:
     """
-    Full pipeline: separate stems, classify timbre (NSynth checkpoint optional), transcribe, chords.
+    Full mix analysis: Demucs separation, optional NSynth family labels, transcription, chords.
 
-    With ``use_staged=True``: pass 1 = global tempo/structure on the mix; pass 2 = Demucs,
-    solo windows, timbre samples on solo crops; pass 3 = iterative note peel per stem.
+    **Always:** load mono mix → ``separate_to_dict`` → optional ``stems/*.wav`` →
+    ``load_classifier`` / ``predict_stem_family`` per stem → chord timelines from notes →
+    write ``output_dir/analysis.json``.
+
+    **If ``use_staged=False``:** ``transcribe_stem`` on each stem (Basic Pitch or fallback).
+
+    **If ``use_staged=True``:** (1) ``analyze_global_structure`` on the mix; if ``write_pass_json``,
+    ``pass1.json``. (2) After separation: ``detect_solo_segments``, ``build_timbre_samples``;
+    if ``write_pass_json``, ``pass2.json`` (debug summary, not full timbre rows). (3)
+    ``extract_notes_iteratively_all_stems`` (optional ``restrict_iterative_to_solo``).
+
+    See ``docs/PIPELINE_AND_TRAINING.md`` for diagrams and ``meta`` keys.
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)

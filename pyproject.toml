@@ -33,12 +33,19 @@ train = [
     "importlib-resources>=6.0",
     "tensorflow>=2.14; python_version < \"3.14\"",
     "tensorflow-datasets>=4.9; python_version < \"3.14\"",
+    # NSynth (and some TFDS builders) import apache_beam at load time.
+    # Beam 2.65+ cloudpickle + etils lazy_imports can recurse when preparing beam datasets (TFDS #11055);
+    # [dill]: NSynth Beam prepare pickling; [tfrecord]: crcmod/snappy deps for beam.io TFRecord (tfrecordio.py).
+    "apache-beam[dill,tfrecord]>=2.54; python_version < \"3.14\"",
+    "psutil>=5.9; python_version < \"3.14\"",
     "optuna>=3.6",
+    "colorlog>=6.8",
 ]
 dev = [
     "pytest>=7.4",
     "pytest-cov>=4.1",
     "mypy>=1.8",
+    "memray>=1.10",
 ]
 
 [project.scripts]
@@ -86,6 +93,10 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "tensorflow_datasets.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "colorlog"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

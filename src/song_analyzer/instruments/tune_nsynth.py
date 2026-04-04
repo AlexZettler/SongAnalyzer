@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 from pathlib import Path
 
@@ -16,11 +17,22 @@ from song_analyzer.instruments.nsynth_tune_fingerprint import (
     nsynth_study_name,
     study_suffix_from_payload,
 )
-from song_analyzer.instruments.train_nsynth import _import_tfds, train_nsynth_run
+from song_analyzer.instruments.train_nsynth import (
+    configure_train_logging,
+    import_tfds_for_nsynth,
+    parse_train_log_level,
+    resolve_tfds_data_dir,
+    train_nsynth_run,
+)
+
+logger = logging.getLogger(__name__)
 
 
-def _nsynth_dataset_version(tfds_module) -> str:
-    b = tfds_module.builder("nsynth", config="full")
+def _nsynth_dataset_version(tfds_module, *, data_dir: str | None = None) -> str:
+    kw: dict = {}
+    if data_dir is not None:
+        kw["data_dir"] = data_dir
+    b = tfds_module.builder("nsynth", config="full", **kw)
     return str(b.info.version)
 
 
@@ -39,6 +51,10 @@ def tune_nsynth_main(
     max_val_steps: int,
     final_epochs: int,
     final_max_steps_per_epoch: int,
+    tfds_data_dir: Path | None = None,
+    log_level: str = "INFO",
+    log_file: Path | None = None,
+    no_log_file: bool = False,
 ) -> None:
     try:
         import optuna
@@ -47,11 +63,32 @@ def tune_nsynth_main(
             'Tuning requires Optuna. Install with: pip install -e ".[train]"'
         ) from e
 
-    _, tfds = _import_tfds()
+    configure_train_logging(
+        parse_train_log_level(log_level),
+        log_file=log_file,
+        no_log_file=no_log_file,
+    )
+    logger.info(
+        "starting Optuna tuning n_trials=%s device=%s cuda_available=%s no_tune_cache=%s "
+        "tune_fresh=%s max_val_steps=%s final_epochs=%s final_max_steps_per_epoch=%s tfds_data_dir=%s",
+        n_trials,
+        device,
+        torch.cuda.is_available(),
+        no_tune_cache,
+        tune_fresh,
+        max_val_steps,
+        final_epochs,
+        final_max_steps_per_epoch,
+        resolve_tfds_data_dir(tfds_data_dir)
+        if tfds_data_dir is not None
+        else "(default ~/tensorflow_datasets or TFDS_DATA_DIR)",
+    )
+    _, tfds = import_tfds_for_nsynth()
     device_t = torch.device(device if torch.cuda.is_available() else "cpu")
+    data_dir = resolve_tfds_data_dir(tfds_data_dir)
 
     code_digest = code_digest_for_instrument_sources()
-    ds_ver = _nsynth_dataset_version(tfds)
+    ds_ver = _nsynth_dataset_version(tfds, data_dir=data_dir)
     payload = fingerprint_payload(
         dataset_name="nsynth/full",
         dataset_version=ds_ver,
@@ -79,7 +116,12 @@ def tune_nsynth_main(
     else:
         study = optuna.create_study(direction="minimize")
 
-    print(f"Optuna study: {study_name} (nsynth full v{ds_ver}, fingerprint suffix {suffix})")
+    logger.info(
+        "Optuna study: %s (nsynth full v%s, fingerprint suffix %s)",
+        study_name,
+        ds_ver,
+        suffix,
+    )
 
     def objective(trial: optuna.Trial) -> float:
         lr = trial.suggest_float("lr", 1e-5, 1e-2, log=True)
@@ -87,6 +129,20 @@ def tune_nsynth_main(
         trial_epochs = trial.suggest_int("epochs", 1, 5)
         max_train_steps = trial.suggest_int("max_steps_per_epoch", 100, 800)
         weight_decay = trial.suggest_float("weight_decay", 1e-6, 0.2, log=True)
+
+        debug_batches = logger.isEnabledFor(logging.DEBUG)
+        prog_train = max(1, max_train_steps // 10) if debug_batches else None
+        prog_val = max(1, max_val_steps // 10) if debug_batches else None
+
+        logger.info(
+            "trial %s hparams lr=%s batch_size=%s trial_epochs=%s max_steps_per_epoch=%s weight_decay=%s",
+            trial.number,
+            lr,
+            batch_size,
+            trial_epochs,
+            max_train_steps,
+            weight_decay,
+        )
 
         model = build_model(device_t)
         opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -103,6 +159,8 @@ def tune_nsynth_main(
                 train=True,
                 shuffle_files=True,
                 shuffle_buffer=10_000,
+                data_dir=data_dir,
+                progress_log_interval=prog_train,
             )
             last_val, _ = run_nsynth_split(
                 tfds,
@@ -115,6 +173,8 @@ def tune_nsynth_main(
                 train=False,
                 shuffle_files=False,
                 shuffle_buffer=0,
+                data_dir=data_dir,
+                progress_log_interval=prog_val,
             )
             trial.report(last_val, epoch)
 
@@ -133,8 +193,8 @@ def tune_nsynth_main(
     study.optimize(objective, n_trials=n_trials, show_progress_bar=sys.stderr.isatty())
 
     best = study.best_params
-    print(f"best validation loss (last epoch): {study.best_value:.4f}")
-    print(f"best params: {best}")
+    logger.info("best validation loss (last epoch): %.4f", study.best_value)
+    logger.info("best params: %s", best)
 
     train_nsynth_run(
         tfds,
@@ -148,4 +208,5 @@ def tune_nsynth_main(
         max_val_steps=None,
         save=True,
         verbose=True,
+        tfds_data_dir=data_dir,
     )

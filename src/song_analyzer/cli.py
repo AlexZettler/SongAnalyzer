@@ -96,6 +96,26 @@ def train_nsynth_cmd(
         "--tune-fresh",
         help="Delete existing study for this fingerprint and start over",
     ),
+    tfds_data_dir: Optional[Path] = typer.Option(
+        None,
+        "--tfds-data-dir",
+        help="TensorFlow Datasets root (default: TFDS_DATA_DIR env or ~/tensorflow_datasets)",
+    ),
+    log_level: str = typer.Option(
+        "INFO",
+        "--log-level",
+        help="Python logging level: DEBUG, INFO, or WARNING",
+    ),
+    log_file: Optional[Path] = typer.Option(
+        None,
+        "--log-file",
+        help="Append logs to this file (default: platform log dir / nsynth_train.log)",
+    ),
+    no_log_file: bool = typer.Option(
+        False,
+        "--no-log-file",
+        help="Do not write a log file (console only)",
+    ),
 ) -> None:
     """Train instrument-family classifier on NSynth (requires pip install -e '.[train]')."""
     if tune:
@@ -112,6 +132,10 @@ def train_nsynth_cmd(
             max_val_steps=val_cap,
             final_epochs=epochs,
             final_max_steps_per_epoch=max_steps,
+            tfds_data_dir=tfds_data_dir,
+            log_level=log_level,
+            log_file=log_file,
+            no_log_file=no_log_file,
         )
         return
 
@@ -135,7 +159,60 @@ def train_nsynth_cmd(
     ]
     if max_val_steps is not None:
         argv.extend(["--max-val-steps", str(max_val_steps)])
+    if tfds_data_dir is not None:
+        argv.extend(["--tfds-data-dir", str(tfds_data_dir)])
+    argv.extend(["--log-level", log_level])
+    if log_file is not None:
+        argv.extend(["--log-file", str(log_file)])
+    if no_log_file:
+        argv.append("--no-log-file")
     train_main(argv)
+
+
+@app.command("prepare-nsynth")
+def prepare_nsynth_cmd(
+    tfds_data_dir: Optional[Path] = typer.Option(
+        None,
+        "--tfds-data-dir",
+        help="TensorFlow Datasets root (default: TFDS_DATA_DIR env or ~/tensorflow_datasets)",
+    ),
+    log_level: str = typer.Option(
+        "INFO",
+        "--log-level",
+        help="Python logging level: DEBUG, INFO, or WARNING",
+    ),
+    log_rss_interval_seconds: Optional[float] = typer.Option(
+        None,
+        "--log-rss-interval-seconds",
+        help="During prepare, log process RSS every N seconds (needs psutil from .[train])",
+    ),
+    log_file: Optional[Path] = typer.Option(
+        None,
+        "--log-file",
+        help="Append logs to this file (default: platform log dir / nsynth_prepare.log)",
+    ),
+    no_log_file: bool = typer.Option(
+        False,
+        "--no-log-file",
+        help="Do not write a log file (console only)",
+    ),
+) -> None:
+    """Download and prepare NSynth TFRecords (requires pip install -e '.[train]')."""
+    from song_analyzer.instruments.prepare_nsynth import prepare_main
+
+    argv: list[str] = []
+    if tfds_data_dir is not None:
+        argv.extend(["--tfds-data-dir", str(tfds_data_dir)])
+    argv.extend(["--log-level", log_level])
+    if log_rss_interval_seconds is not None:
+        argv.extend(
+            ["--log-rss-interval-seconds", str(log_rss_interval_seconds)]
+        )
+    if log_file is not None:
+        argv.extend(["--log-file", str(log_file)])
+    if no_log_file:
+        argv.append("--no-log-file")
+    prepare_main(argv)
 
 
 @app.command("remove-note")

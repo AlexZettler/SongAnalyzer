@@ -33,10 +33,12 @@ song-analyzer remove-note path/to/song.wav --output ./out/mix_minus.wav --stem o
 
 Set `SONGANALYZER_NSYNTH_CHECKPOINT` or pass `--nsynth-checkpoint` to a trained `.pt` file for instrument labels; otherwise stems are labeled with a uniform fallback and a warning.
 
+For a full description of the analysis stages, output files (`analysis.json`, optional `pass1.json` / `pass2.json`), and how they relate to NSynth checkpoints and training caches, see [docs/PIPELINE_AND_TRAINING.md](docs/PIPELINE_AND_TRAINING.md).
+
 ## Train NSynth classifier
 
 ```bash
 song-analyzer train-nsynth --out checkpoints/nsynth.pt --epochs 5 --device cuda
 ```
 
-Requires `[train]` and TensorFlow Datasets download of `nsynth` on first run.
+Requires `[train]` and TensorFlow Datasets download of `nsynth` on first run. Training checkpoints are PyTorch **state dicts** only; Optuna tuning (with `--tune`) stores studies under the user cache — details in [docs/PIPELINE_AND_TRAINING.md](docs/PIPELINE_AND_TRAINING.md).

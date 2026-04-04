@@ -1,0 +1,6 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+  "terminal.integrated.env.windows": {
+    "TFDS_DATA_DIR": "D:\\tensorflow_datasets"
+  }
+}

@@ -5,6 +5,7 @@
       "name": "CLI: train-nsynth (default)",
       "type": "python",
       "request": "launch",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
       "module": "song_analyzer.cli",
       "args": [
         "train-nsynth",
@@ -19,12 +20,30 @@
       ],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
-      "justMyCode": true
+      "justMyCode": true,
+      "env": {
+        "TFDS_DATA_DIR": "D:\\tensorflow_datasets"
+      }
+    },
+    {
+      "name": "CLI: prepare-nsynth",
+      "type": "python",
+      "request": "launch",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "module": "song_analyzer.cli",
+      "args": ["prepare-nsynth"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "TFDS_DATA_DIR": "D:\\tensorflow_datasets"
+      }
     },
     {
       "name": "CLI: train-nsynth (CPU)",
       "type": "python",
       "request": "launch",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
       "module": "song_analyzer.cli",
       "args": [
         "train-nsynth",
@@ -39,12 +58,96 @@
       ],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
-      "justMyCode": true
+      "justMyCode": true,
+      "env": {
+        "TFDS_DATA_DIR": "D:\\tensorflow_datasets"
+      }
+    },
+    // Memray: "module": "memray" runs `python -m memray` (same as the `memray` CLI). Memray does not support native Windows—pip errors with "does not support this platform (win32)"; use WSL Remote + a Linux venv here (.venv/bin/python), pip install -e ".[dev]", then memray flamegraph memray-*.bin -o out.html. Set TFDS_DATA_DIR to a Linux path under WSL (e.g. /mnt/d/tensorflow_datasets).
+    {
+      "name": "CLI: prepare-nsynth (memray)",
+      "type": "python",
+      "request": "launch",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "module": "memray",
+      "args": [
+        "run",
+        "-o",
+        "${workspaceFolder}/memray-prepare-nsynth.bin",
+        "-m",
+        "song_analyzer.cli",
+        "prepare-nsynth"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "TFDS_DATA_DIR": "D:\\tensorflow_datasets"
+      }
+    },
+    {
+      "name": "CLI: train-nsynth (memray, default)",
+      "type": "python",
+      "request": "launch",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "module": "memray",
+      "args": [
+        "run",
+        "-o",
+        "${workspaceFolder}/memray-train-nsynth.bin",
+        "-m",
+        "song_analyzer.cli",
+        "train-nsynth",
+        "--out",
+        "checkpoints/nsynth.pt",
+        "--epochs",
+        "5",
+        "--device",
+        "cuda",
+        "--max-steps-per-epoch",
+        "500"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "TFDS_DATA_DIR": "D:\\tensorflow_datasets"
+      }
+    },
+    {
+      "name": "CLI: train-nsynth (memray, CPU)",
+      "type": "python",
+      "request": "launch",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "module": "memray",
+      "args": [
+        "run",
+        "-o",
+        "${workspaceFolder}/memray-train-nsynth-cpu.bin",
+        "-m",
+        "song_analyzer.cli",
+        "train-nsynth",
+        "--out",
+        "checkpoints/nsynth.pt",
+        "--epochs",
+        "5",
+        "--device",
+        "cpu",
+        "--max-steps-per-epoch",
+        "500"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "TFDS_DATA_DIR": "D:\\tensorflow_datasets"
+      }
     },
     {
       "name": "CLI: analyze",
       "type": "python",
       "request": "launch",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
       "module": "song_analyzer.cli",
       "args": [
         "analyze",
@@ -65,6 +168,7 @@
       "name": "CLI: analyze (staged)",
       "type": "python",
       "request": "launch",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
       "module": "song_analyzer.cli",
       "args": [
         "analyze",
@@ -88,6 +192,7 @@
       "name": "CLI: remove-note",
       "type": "python",
       "request": "launch",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
       "module": "song_analyzer.cli",
       "args": [
         "remove-note",
@@ -113,6 +218,7 @@
       "name": "Python: pytest (all)",
       "type": "python",
       "request": "launch",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
       "module": "pytest",
       "args": ["tests", "-v"],
       "cwd": "${workspaceFolder}",
@@ -123,6 +229,7 @@
       "name": "Python: pytest (current file)",
       "type": "python",
       "request": "launch",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
       "module": "pytest",
       "args": ["${file}", "-v"],
       "cwd": "${workspaceFolder}",
