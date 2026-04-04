@@ -33,7 +33,7 @@ song-analyzer remove-note path/to/song.wav --output ./out/mix_minus.wav --stem o
 
 Set `SONGANALYZER_NSYNTH_CHECKPOINT` or pass `--nsynth-checkpoint` to a trained `.pt` file for instrument labels; otherwise stems are labeled with a uniform fallback and a warning.
 
-For a full description of the analysis stages, output files (`analysis.json`, optional `pass1.json` / `pass2.json`), and how they relate to NSynth checkpoints and training caches, see [docs/PIPELINE_AND_TRAINING.md](docs/PIPELINE_AND_TRAINING.md).
+For which models are trained vs pretrained and how each fits the stack, see [docs/MODELS.md](docs/MODELS.md). For analysis stages, output files (`analysis.json`, optional `pass1.json` / `pass2.json`), NSynth checkpoints, and training caches, see [docs/PIPELINE_AND_TRAINING.md](docs/PIPELINE_AND_TRAINING.md).
 
 ## Train NSynth classifier
 
@@ -41,4 +41,4 @@ For a full description of the analysis stages, output files (`analysis.json`, op
 song-analyzer train-nsynth --out checkpoints/nsynth.pt --epochs 5 --device cuda
 ```
 
-Requires `[train]` and TensorFlow Datasets download of `nsynth` on first run. Training checkpoints are PyTorch **state dicts** only; Optuna tuning (with `--tune`) stores studies under the user cache — details in [docs/PIPELINE_AND_TRAINING.md](docs/PIPELINE_AND_TRAINING.md).
+Requires `[train]` and TensorFlow Datasets download of `nsynth` on first run. Training checkpoints are PyTorch **state dicts** only; Optuna tuning (with `--tune`) stores studies under the user cache — classifier layout and training flow in [docs/MODELS.md](docs/MODELS.md); ops and caches in [docs/PIPELINE_AND_TRAINING.md](docs/PIPELINE_AND_TRAINING.md).

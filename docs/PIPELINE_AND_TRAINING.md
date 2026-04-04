@@ -2,6 +2,8 @@
 
 This document describes how a full mix is analyzed (including the optional staged path), what files are written, how NSynth data flows into training and tuning, and what state is persisted on disk.
 
+For a **registry of all models** (trained vs pretrained), per-model I/O, and training/inference pipelines for `FamilyClassifier`, see [MODELS.md](MODELS.md).
+
 ## Mix analysis (`analyze_mix`)
 
 Entry point: `song_analyzer.pipeline.analyze_mix` (CLI: `song-analyzer analyze`).
@@ -87,6 +89,8 @@ Full schema: `song_analyzer.schema.AnalysisResult` and nested models.
 ---
 
 ## NSynth data and training
+
+See also: [MODELS.md](MODELS.md) (FamilyClassifier architecture and pipeline diagrams).
 
 Training code lives under `song_analyzer.instruments`. Shared batching and TFDS loading: `nsynth_train_loop.py`. High-level training: `train_nsynth.py`. Hyperparameter search: `tune_nsynth.py`.
 
