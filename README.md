@@ -33,7 +33,7 @@ song-analyzer remove-note path/to/song.wav --output ./out/mix_minus.wav --stem o
 
 Set `SONGANALYZER_NSYNTH_CHECKPOINT` or pass `--nsynth-checkpoint` to a trained `.pt` file for instrument labels; otherwise stems are labeled with a uniform fallback and a warning.
 
-For which models are trained vs pretrained and how each fits the stack, see [docs/MODELS.md](docs/MODELS.md). For analysis stages, output files (`analysis.json`, optional `pass1.json` / `pass2.json`), NSynth checkpoints, and training caches, see [docs/PIPELINE_AND_TRAINING.md](docs/PIPELINE_AND_TRAINING.md).
+For which models are trained vs pretrained and how each fits the stack, see [docs/MODELS.md](docs/MODELS.md). For analysis stages, output files (`analysis.json`, optional `pass1.json` / `pass2.json`), NSynth checkpoints, and training caches, see [docs/PIPELINE_AND_TRAINING.md](docs/PIPELINE_AND_TRAINING.md). For building a track corpus (metadata, lyrics, audio) and a target Spark ingestion workflow, see [docs/CORPUS_AND_DATA_PIPELINES.md](docs/CORPUS_AND_DATA_PIPELINES.md).
 
 ## Train NSynth classifier
 

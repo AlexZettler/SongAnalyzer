@@ -41,11 +41,14 @@ train = [
     "optuna>=3.6",
     "colorlog>=6.8",
 ]
+# HTTP/metadata helpers for corpus import (MusicBrainz); optional lyrics connectors.
+corpus = [
+    "httpx>=0.27",
+]
 dev = [
     "pytest>=7.4",
     "pytest-cov>=4.1",
     "mypy>=1.8",
-    "memray>=1.10",
 ]
 
 [project.scripts]
@@ -105,4 +108,12 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "optuna.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "httpx"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "httpx.*"
 ignore_missing_imports = true
