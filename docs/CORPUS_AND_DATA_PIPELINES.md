@@ -117,3 +117,4 @@ flowchart LR
 
 - [PIPELINE_AND_TRAINING.md](PIPELINE_AND_TRAINING.md) — mix analysis pipeline, NSynth, Beam.
 - [MODELS.md](MODELS.md) — classifier and training stack.
+- [PUBSUB_AND_BEAM.md](PUBSUB_AND_BEAM.md) — Pub/Sub topics, Beam streaming workers, and corpus `song.request` handling.

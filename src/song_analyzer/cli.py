@@ -9,9 +9,11 @@ from typing import Optional
 import numpy as np
 import typer
 
+from song_analyzer.cli_messaging import register as register_messaging_cli
 from song_analyzer.pipeline import analyze_mix, remove_note_from_mix
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
+register_messaging_cli(app)
 
 corpus_app = typer.Typer(no_args_is_help=True, add_completion=False, help="Song corpus, lyrics metadata, pseudo-labels.")
 app.add_typer(corpus_app, name="corpus")

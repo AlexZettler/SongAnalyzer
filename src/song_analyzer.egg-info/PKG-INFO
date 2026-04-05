@@ -22,7 +22,20 @@ Provides-Extra: train
 Requires-Dist: importlib-resources>=6.0; extra == "train"
 Requires-Dist: tensorflow>=2.14; python_version < "3.14" and extra == "train"
 Requires-Dist: tensorflow-datasets>=4.9; python_version < "3.14" and extra == "train"
+Requires-Dist: apache-beam[dill,tfrecord]>=2.54; python_version < "3.14" and extra == "train"
+Requires-Dist: psutil>=5.9; python_version < "3.14" and extra == "train"
 Requires-Dist: optuna>=3.6; extra == "train"
+Requires-Dist: colorlog>=6.8; extra == "train"
+Provides-Extra: corpus
+Requires-Dist: httpx>=0.27; extra == "corpus"
+Provides-Extra: stream
+Requires-Dist: google-cloud-pubsub>=2.18; extra == "stream"
+Requires-Dist: google-api-core>=2.15; extra == "stream"
+Requires-Dist: apache-beam[gcp]>=2.54; python_version < "3.14" and extra == "stream"
+Provides-Extra: api
+Requires-Dist: fastapi>=0.115; extra == "api"
+Requires-Dist: uvicorn[standard]>=0.32; extra == "api"
+Requires-Dist: python-multipart>=0.0.9; extra == "api"
 Provides-Extra: dev
 Requires-Dist: pytest>=7.4; extra == "dev"
 Requires-Dist: pytest-cov>=4.1; extra == "dev"
@@ -63,10 +76,12 @@ song-analyzer remove-note path/to/song.wav --output ./out/mix_minus.wav --stem o
 
 Set `SONGANALYZER_NSYNTH_CHECKPOINT` or pass `--nsynth-checkpoint` to a trained `.pt` file for instrument labels; otherwise stems are labeled with a uniform fallback and a warning.
 
+For which models are trained vs pretrained and how each fits the stack, see [docs/MODELS.md](docs/MODELS.md). For analysis stages, output files (`analysis.json`, optional `pass1.json` / `pass2.json`), NSynth checkpoints, and training caches, see [docs/PIPELINE_AND_TRAINING.md](docs/PIPELINE_AND_TRAINING.md). For building a track corpus (metadata, lyrics, audio) and a target Spark ingestion workflow, see [docs/CORPUS_AND_DATA_PIPELINES.md](docs/CORPUS_AND_DATA_PIPELINES.md). For **Pub/Sub + Beam** workflows (corpus requests, Optuna HPO, train requests, optional HTTP API), see [docs/PUBSUB_AND_BEAM.md](docs/PUBSUB_AND_BEAM.md).
+
 ## Train NSynth classifier
 
 ```bash
 song-analyzer train-nsynth --out checkpoints/nsynth.pt --epochs 5 --device cuda
 ```
 
-Requires `[train]` and TensorFlow Datasets download of `nsynth` on first run.
+Requires `[train]` and TensorFlow Datasets download of `nsynth` on first run. Training checkpoints are PyTorch **state dicts** only; Optuna tuning (with `--tune`) stores studies under the user cache — classifier layout and training flow in [docs/MODELS.md](docs/MODELS.md); ops and caches in [docs/PIPELINE_AND_TRAINING.md](docs/PIPELINE_AND_TRAINING.md).

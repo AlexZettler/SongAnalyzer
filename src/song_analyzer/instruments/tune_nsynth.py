@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import logging
+import re
+import shutil
 import sys
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import torch
 
@@ -40,9 +45,40 @@ def _sqlite_url(path: Path) -> str:
     return "sqlite:///" + path.resolve().as_posix()
 
 
-def tune_nsynth_main(
+def _sanitize_exploration_id(raw: str) -> str:
+    s = re.sub(r"[^a-zA-Z0-9_.-]+", "_", raw.strip())
+    return s[:120] or "explore"
+
+
+@dataclass(frozen=True)
+class HpoJobResult:
+    exploration_id: str
+    study_name: str
+    best_params: dict[str, Any]
+    best_value: float
+    archived_db_path: Path | None
+    trials_export_csv: Path | None
+    out_checkpoint: Path | None
+
+
+def _archive_tune_database(db_path: Path, exploration_id: str, archive_root: Path) -> Path:
+    archive_root.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    dest = archive_root / f"{_sanitize_exploration_id(exploration_id)}_{ts}.db"
+    shutil.copy2(db_path, dest)
+    return dest
+
+
+def _export_trials_csv(study: Any, path: Path) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    df = study.trials_dataframe()
+    df.to_csv(path, index=False)
+    return path
+
+
+def run_nsynth_hpo_job(
     *,
-    out: Path,
+    out: Path | None,
     device: str,
     n_trials: int,
     tune_cache_dir: Path | None,
@@ -55,7 +91,16 @@ def tune_nsynth_main(
     log_level: str = "INFO",
     log_file: Path | None = None,
     no_log_file: bool = False,
-) -> None:
+    exploration_id: str | None = None,
+    archive_tune_db_before: bool = False,
+    skip_final_train: bool = False,
+) -> HpoJobResult:
+    """
+    Run Optuna HPO; optionally archive SQLite DB, export trials CSV, and skip final full train.
+
+    When ``exploration_id`` is set, the Optuna study name includes it so prior studies in the
+    same RDB file remain available for ``train_nsynth_from_study``.
+    """
     try:
         import optuna
     except ImportError as e:
@@ -68,9 +113,11 @@ def tune_nsynth_main(
         log_file=log_file,
         no_log_file=no_log_file,
     )
+    expl = exploration_id or ""
     logger.info(
         "starting Optuna tuning n_trials=%s device=%s cuda_available=%s no_tune_cache=%s "
-        "tune_fresh=%s max_val_steps=%s final_epochs=%s final_max_steps_per_epoch=%s tfds_data_dir=%s",
+        "tune_fresh=%s max_val_steps=%s final_epochs=%s final_max_steps_per_epoch=%s "
+        "tfds_data_dir=%s exploration_id=%s skip_final_train=%s",
         n_trials,
         device,
         torch.cuda.is_available(),
@@ -82,6 +129,8 @@ def tune_nsynth_main(
         resolve_tfds_data_dir(tfds_data_dir)
         if tfds_data_dir is not None
         else "(default ~/tensorflow_datasets or TFDS_DATA_DIR)",
+        expl or "(default study name)",
+        skip_final_train,
     )
     _, tfds = import_tfds_for_nsynth()
     device_t = torch.device(device if torch.cuda.is_available() else "cpu")
@@ -95,12 +144,26 @@ def tune_nsynth_main(
         code_digest=code_digest,
     )
     suffix = study_suffix_from_payload(payload)
-    study_name = nsynth_study_name(suffix)
+    base_study = nsynth_study_name(suffix)
+    study_name = (
+        f"{base_study}__{_sanitize_exploration_id(exploration_id)}"
+        if exploration_id
+        else base_study
+    )
 
     cache_root = tune_cache_dir or default_tune_cache_dir()
+    archived: Path | None = None
+    export_csv: Path | None = None
+    db_path: Path | None = None
+
     if not no_tune_cache:
         cache_root.mkdir(parents=True, exist_ok=True)
         db_path = cache_root / "nsynth_tune.db"
+        if archive_tune_db_before and exploration_id and db_path.is_file():
+            arch_dir = cache_root / "tune_archive"
+            archived = _archive_tune_database(db_path, exploration_id, arch_dir)
+            logger.info("archived tune DB to %s", archived)
+
         storage = optuna.storages.RDBStorage(_sqlite_url(db_path))
         if tune_fresh:
             try:
@@ -192,21 +255,81 @@ def tune_nsynth_main(
 
     study.optimize(objective, n_trials=n_trials, show_progress_bar=sys.stderr.isatty())
 
-    best = study.best_params
-    logger.info("best validation loss (last epoch): %.4f", study.best_value)
+    best = dict(study.best_params)
+    best_val = float(study.best_value)
+    logger.info("best validation loss (last epoch): %.4f", best_val)
     logger.info("best params: %s", best)
 
-    train_nsynth_run(
-        tfds,
+    key = _sanitize_exploration_id(exploration_id) if exploration_id else "default"
+    if not no_tune_cache:
+        export_csv = _export_trials_csv(
+            study, cache_root / "exports" / f"{key}_trials.csv"
+        )
+        logger.info("exported trials to %s", export_csv)
+
+    out_checkpoint: Path | None = None
+    if not skip_final_train:
+        if out is None:
+            raise ValueError("final training requires out= when skip_final_train is False")
+        train_nsynth_run(
+            tfds,
+            out=out,
+            device=device_t,
+            epochs=final_epochs,
+            batch_size=int(best["batch_size"]),
+            lr=float(best["lr"]),
+            weight_decay=float(best["weight_decay"]),
+            max_steps_per_epoch=final_max_steps_per_epoch,
+            max_val_steps=None,
+            save=True,
+            verbose=True,
+            tfds_data_dir=data_dir,
+        )
+        out_checkpoint = out
+
+    return HpoJobResult(
+        exploration_id=expl or "default",
+        study_name=study_name,
+        best_params=best,
+        best_value=best_val,
+        archived_db_path=archived,
+        trials_export_csv=export_csv,
+        out_checkpoint=out_checkpoint,
+    )
+
+
+def tune_nsynth_main(
+    *,
+    out: Path,
+    device: str,
+    n_trials: int,
+    tune_cache_dir: Path | None,
+    no_tune_cache: bool,
+    tune_fresh: bool,
+    max_val_steps: int,
+    final_epochs: int,
+    final_max_steps_per_epoch: int,
+    tfds_data_dir: Path | None = None,
+    log_level: str = "INFO",
+    log_file: Path | None = None,
+    no_log_file: bool = False,
+) -> None:
+    """CLI path: tune then train with best hyperparameters (unchanged behavior)."""
+    run_nsynth_hpo_job(
         out=out,
-        device=device_t,
-        epochs=final_epochs,
-        batch_size=int(best["batch_size"]),
-        lr=float(best["lr"]),
-        weight_decay=float(best["weight_decay"]),
-        max_steps_per_epoch=final_max_steps_per_epoch,
-        max_val_steps=None,
-        save=True,
-        verbose=True,
-        tfds_data_dir=data_dir,
+        device=device,
+        n_trials=n_trials,
+        tune_cache_dir=tune_cache_dir,
+        no_tune_cache=no_tune_cache,
+        tune_fresh=tune_fresh,
+        max_val_steps=max_val_steps,
+        final_epochs=final_epochs,
+        final_max_steps_per_epoch=final_max_steps_per_epoch,
+        tfds_data_dir=tfds_data_dir,
+        log_level=log_level,
+        log_file=log_file,
+        no_log_file=no_log_file,
+        exploration_id=None,
+        archive_tune_db_before=False,
+        skip_final_train=False,
     )
